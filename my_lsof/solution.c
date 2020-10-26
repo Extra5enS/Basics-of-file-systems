@@ -121,46 +121,16 @@ void pid_stat_read(int pid) {
         strcat(fd_info, fd_dir);
         strcat(fd_info, dirbuf -> d_name);
    
-        char readlinkbuf[MAX_MEM_SIZE];
-        readlink(fd_info, readlinkbuf, MAX_MEM_SIZE);
-        
-
         struct stat linkstat;
         lstat(fd_info, &linkstat);
         
-        char ltype[30];
-        memset(ltype, '\0', 30);
-        switch (linkstat.st_mode & __S_IFMT) {
-           case __S_IFBLK:  
-               strcat(ltype, "block device");            
-               break;
-           case __S_IFCHR:  
-               strcat(ltype, "character device");        
-               break;
-           case __S_IFDIR:  
-               strcat(ltype, "directory");               
-               break;
-           case __S_IFIFO:  
-               strcat(ltype, "FIFO/pipe");               
-               break;
-           case __S_IFLNK:  
-               strcat(ltype, "symlink");                 
-               break;
-           case __S_IFREG:  
-               strcat(ltype, "regular file");            
-               break;
-           case __S_IFSOCK: 
-               strcat(ltype, "socket");                  
-               break;
-           default:         
-               strcat(ltype, "unknown");                 
-               break;
-        }
+        char* readlinkbuf = calloc(linkstat.st_size, 1);
+        readlink(fd_info, readlinkbuf, linkstat.st_size + 1);
 
-        printf("%25s\t%4d %10s %30s %10lu %10lu %s\n", 
-                pid_stat.comm, pid_stat.pid, user -> pw_name,
-                /*add fd*/ ltype, /*add device*/
-                linkstat.st_size, linkstat.st_ino, fd_info);
+        printf("%25s\t%4d %10s %30s\n", 
+                pid_stat.comm, pid_stat.pid, user -> pw_name, readlinkbuf);
+        
+        free(readlinkbuf);
     }
     closedir(dir);
 }
