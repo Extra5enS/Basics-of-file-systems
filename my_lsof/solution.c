@@ -13,6 +13,7 @@
 #include<sys/stat.h>
 #include<sys/errno.h>
 #include<sys/time.h>
+#include <sys/sysmacros.h>
 
 #include<pwd.h>
 
@@ -23,6 +24,7 @@ typedef struct {
     int pid; // (1)
     char* comm; // (2)
 } pid_stat_t;
+
 
 void pid_stat_read(int pid) {
     char pathname[MAX_MEM_SIZE];
@@ -39,9 +41,9 @@ void pid_stat_read(int pid) {
 			perror("Stat error");
 			exit(-1);
     }
-    
-    
+     
     char stat[MAX_MEM_SIZE];
+    memset(stat, '\0', MAX_MEM_SIZE);
     strcat(stat, pathname);
     strcat(stat, "/stat");
 
@@ -64,7 +66,7 @@ void pid_stat_read(int pid) {
     pid_stat_t pid_stat;
     char* left_pointer = strstat;
     char* right_pointer = strstat;
-    struct passwd* user;
+    struct passwd* user = getpwuid(mystat.st_uid);
     char comm[MAX_MEM_SIZE];
     for(int i = 1; i < 52; ++i) {
         right_pointer = strstr(left_pointer, " ");
@@ -77,31 +79,90 @@ void pid_stat_read(int pid) {
                 right_pointer = strstr(right_pointer, " "); 
             }
         }
+
         switch(i) {
             case 1: // pid
                 sscanf(left_pointer, "%d", &pid_stat.pid);
                 break;
             case 2: // comm
                 sscanf(left_pointer, "%s", comm);
-                pid_stat.comm = comm;
+                comm[strlen(comm) - 1] = '\0';
+                pid_stat.comm = comm + 1;
                 break;
         }
         left_pointer = right_pointer + 1;
         if(right_pointer == NULL) {
             break;
         }
-    }
-    user = getpwuid(mystat.st_uid);
 
+    }
     //Now we must read /proc/[pid]/fd to find fd
      
-    char fd_info[MAX_MEM_SIZE];
-    strcat(fd_info, pathname);
-    //fd_info = "/proc/[pid]/fd/"
-    strcat(fd_info, "/fd/");
+    char fd_dir[MAX_MEM_SIZE];
+    memset(fd_dir, '\0', MAX_MEM_SIZE);
+    strcat(fd_dir, pathname);
+    strcat(fd_dir, "/fd/");
     
+    DIR* dir;
+    if((dir = opendir(fd_dir)) == NULL) {
+		perror("Open dir error");
+		exit(-1);
+	}
 
+    struct dirent* dirbuf;
+    for(;(dirbuf = readdir(dir)) != NULL;) {
+        if(strcmp(dirbuf -> d_name, ".") == 0 || strcmp(dirbuf -> d_name, "..") == 0) {
+            continue;
+        }
+        
+        char fd_info[MAX_MEM_SIZE];
+        memset(fd_info, '\0', MAX_MEM_SIZE);
+        
+        strcat(fd_info, fd_dir);
+        strcat(fd_info, dirbuf -> d_name);
+   
+        char readlinkbuf[MAX_MEM_SIZE];
+        readlink(fd_info, readlinkbuf, MAX_MEM_SIZE);
+        
 
+        struct stat linkstat;
+        lstat(fd_info, &linkstat);
+        
+        char ltype[30];
+        memset(ltype, '\0', 30);
+        switch (linkstat.st_mode & __S_IFMT) {
+           case __S_IFBLK:  
+               strcat(ltype, "block device");            
+               break;
+           case __S_IFCHR:  
+               strcat(ltype, "character device");        
+               break;
+           case __S_IFDIR:  
+               strcat(ltype, "directory");               
+               break;
+           case __S_IFIFO:  
+               strcat(ltype, "FIFO/pipe");               
+               break;
+           case __S_IFLNK:  
+               strcat(ltype, "symlink");                 
+               break;
+           case __S_IFREG:  
+               strcat(ltype, "regular file");            
+               break;
+           case __S_IFSOCK: 
+               strcat(ltype, "socket");                  
+               break;
+           default:         
+               strcat(ltype, "unknown");                 
+               break;
+        }
+
+        printf("%25s\t%4d %10s %30s %10lu %10lu %s\n", 
+                pid_stat.comm, pid_stat.pid, user -> pw_name,
+                /*add fd*/ ltype, /*add device*/
+                linkstat.st_size, linkstat.st_ino, fd_info);
+    }
+    closedir(dir);
 }
 
 int main() {
@@ -110,7 +171,7 @@ int main() {
 		perror("Open dir error");
 		exit(-1);
 	}
-    printf("%s %s %s %s %s %s %s %s %s\n",
+    printf("%25s\t%4s %10s %s %30s %s %10s %10s %s\n",
            "COMMAND", "PID", "USER", //have
            "FD", "TYPE", "DEVICE", 
            "SIZE", "NODE", "NAME");
