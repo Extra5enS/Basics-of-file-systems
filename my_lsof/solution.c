@@ -127,7 +127,7 @@ void pid_stat_read(int pid) {
         char* readlinkbuf = calloc(linkstat.st_size, 1);
         readlink(fd_info, readlinkbuf, linkstat.st_size + 1);
 
-        printf("%25s\t%4d %10s %30s\n", 
+        printf("%25s\t%4d %10s\t\t%s\n", 
                 pid_stat.comm, pid_stat.pid, user -> pw_name, readlinkbuf);
         
         free(readlinkbuf);
