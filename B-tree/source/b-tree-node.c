@@ -1,5 +1,6 @@
 
 #include "../include/b-tree-node.h"
+#include <stdio.h>
 
 void kv_pair_init(struct kv_pair* kvp, int64_t key, int64_t value) {
     kvp -> key = key;
@@ -20,15 +21,15 @@ void node_init(struct node* n, size_t t) {
     n -> t = t;
     n -> size = 0;
     n -> leaf = 1;
-    n -> pairs = calloc(2 * t, sizeof(int64_t));
-    n -> nodes = calloc(2 * t, sizeof(struct node*));
+    n -> pairs = (struct kv_pair*)calloc(2 * t + 2, sizeof(struct kv_pair));
+    n -> nodes = (struct node**)calloc(2 * t + 2, sizeof(struct node*));
 }
 
 struct ans node_search(struct node* n, int64_t key) {
-    size_t i = 0;
+    size_t i = 1;
     
-    for(;i < n -> size && key > n -> pairs[i].key; ++i);
-    if(i < n -> size && key == n -> pairs[i].key) {
+    for(;i <= n -> size && key > n -> pairs[i].key; ++i);
+    if(i <= n -> size && key == n -> pairs[i].key) {
         struct ans a = { n, i };
         return a;
     } else if (n -> leaf) {
@@ -40,73 +41,84 @@ struct ans node_search(struct node* n, int64_t key) {
 }
 
 void node_split_child(struct node* n, size_t i) {
-    struct node* newn = malloc(sizeof(struct node));
+    struct node* newn = (struct node*)malloc(sizeof(struct node));
     node_init(newn, n -> t);
-
     struct node* child = n -> nodes[i];
-    newn -> leaf = n -> leaf;
+    newn -> leaf = child -> leaf;
     newn -> size = n -> t - 1;
-    for(size_t j = 0; j < n -> t - 1; ++j) {
-        newn -> pairs[j] = child -> pairs[j];
+
+    for(size_t j = 1; j <= n -> t - 1; ++j) {
+        newn -> pairs[j] = child -> pairs[j + n -> t];
     }
 
-
     if(!child -> leaf) {
-        for(size_t j = 0; j < n -> t; ++j) {
+        for(size_t j = 1; j <= n -> t; ++j) {
             newn -> nodes[j] = child -> nodes[j + n -> t];
         }
     }
     child -> size = n -> t - 1;
-    for(size_t j = n -> size; j > i - 1; --j) {
+    for(size_t j = n -> size + 1; j >= i + 1; --j) {
         n -> nodes[j + 1] = n -> nodes[j];
     }
-    n -> nodes[i] = newn;
-
-    for(size_t j = n -> size - 1; j > i; --j) {
-        n -> nodes[j + 1] = n -> nodes[j];
+    n -> nodes[i + 1] = newn;
+    
+    for(size_t j = n -> size; j >= i; --j) {
+        n -> pairs[j + 1] = n -> pairs[j];
     }
 
     n -> pairs[i] = child -> pairs[n -> t];
     n -> size++;
 }
 
-// TODO test this!!!!
 void node_insert_nonfull(struct node* n, int64_t key, int64_t value) {
-    size_t i = n -> size;
-    size_t k = i + 1;
+    int64_t i = n -> size;
     if(n -> leaf) {
-        for(;k >= 1 && key < n -> pairs[k - 1].key; --k) {
-            n -> pairs[k] = n -> pairs[k - 1];
+        for(;i >= 1 && key < n -> pairs[i].key; --i) {
+            n -> pairs[i + 1] = n -> pairs[i];
         }
         struct kv_pair kvp;
         kv_pair_init(&kvp, key, value); 
-        n -> pairs[k - 1] = kvp;
-        n -> size = n -> size + 1;
+        n -> pairs[i + 1] = kvp;
+        n -> size++;
     } else {
-        for(;k >= 1 && key < n -> pairs[k - 1].key; --k);
-        if(n -> nodes[k - 1] -> size == 2 * n -> t - 1) {
+        for(;i >= 1 && key < n -> pairs[i].key; --i);
+        ++i;
+        if(n -> nodes[i] -> size == 2 * n -> t - 1) {
             node_split_child(n, i);
-            if(key > n -> pairs[k - 1].key) {
-                k += 1;
+            if(key > n -> pairs[i].key) {
+                ++i;
             }
         }    
-        node_insert_nonfull(n -> nodes[k - 1], key, value);
+        node_insert_nonfull(n -> nodes[i], key, value);
     }
 }
 
 void node_foreach(struct node* n, void (*ptr)(struct kv_pair* value)) {
-    for(size_t i = 0; i < n -> size; ++i) {
+    if(n == NULL) {
+        return;
+    }
+    for(size_t i = 1; i <= n -> size; ++i) {
         node_foreach(n -> nodes[i], ptr);
-        ptr(&n->pairs[i]);
+        if(!n -> pairs[i].is_delete) {
+            ptr(&n->pairs[i]);
+        }
     } 
-    node_foreach(n -> nodes[n -> size], ptr);
+    if(n -> nodes[n -> size + 1]) {
+        node_foreach(n -> nodes[n -> size + 1], ptr);
+    }
 }
 
 void node_free(struct node* n) {
-    for(size_t i = 0; i < n -> size; ++i) {
+    if(n == NULL) {
+        return;
+    }
+    for(size_t i = 1; i <= n -> size; ++i) {
         node_free(n -> nodes[i]);
         free(n -> nodes[i]);
     } 
-    node_free(n -> nodes[n -> size]);
-    free(n -> nodes[n -> size]);
+    node_free(n -> nodes[n -> size + 1]);
+    free(n -> nodes[n -> size + 1]);
+    
+    free(n -> nodes);
+    free(n -> pairs);
 }

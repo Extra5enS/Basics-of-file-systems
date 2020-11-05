@@ -1,12 +1,14 @@
 #include"../include/b-tree.h"
+#include<stdio.h>
 
 void btree_init(btree* bt, size_t t) {
+    bt -> root = (struct node*) malloc(sizeof(struct node));
     node_init(bt -> root, t);
 }
 
 int btree_search(btree* bt, int64_t key, int64_t* value) {
     struct ans a = node_search(bt -> root, key);
-    if(a.n == NULL) {
+    if(a.n == NULL || a.n -> pairs[a.i].is_delete) {
         return 0;
     } else {
         *value = a.n -> pairs[a.i].value;
@@ -14,22 +16,40 @@ int btree_search(btree* bt, int64_t key, int64_t* value) {
     }
 }
 
-void btree_insert(btree* bt, int64_t key, int64_t value) {
+void btree_insert(btree* bt, int64_t key, int64_t value) { 
+    struct ans a = node_search(bt -> root, key);
+    if(a.n != NULL) {
+        if(a.n -> pairs[a.i].is_delete) {
+            a.n -> pairs[a.i].is_delete = 0;
+        }
+        a.n -> pairs[a.i].value = value;
+        return;
+    } 
+
     struct node* root = bt -> root;
     
-    if(root -> size == root -> t * 2 - 1) {
-        struct node* new = malloc(sizeof(struct node));
-        node_init(new, root -> t);
+    if(root -> size == 2 * root -> t - 1) {
+        struct node* newn = (struct node*) malloc(sizeof(struct node));
+        node_init(newn, root -> t);
 
-        bt -> root = new;
-        new -> leaf = 0;
-        new -> size = 0;
-        new -> nodes[0] = root;
-
-        node_split_child(new, 1);
-        node_insert_nonfull(new, key, value);
+        bt -> root = newn;
+        newn -> leaf = 0;
+        newn -> size = 0;
+        newn -> nodes[1] = root;
+        node_split_child(newn, 1);
+        node_insert_nonfull(newn, key, value);
     } else {
         node_insert_nonfull(root, key, value);
+    }
+}
+
+int btree_erase(btree* bt, int64_t key) {
+    struct ans a = node_search(bt -> root, key);
+    if(a.n != NULL && !a.n -> pairs[a.i].is_delete) {
+        a.n -> pairs[a.i].is_delete = 1;
+        return 1;
+    } else {
+        return 0;
     }
 }
 
@@ -39,4 +59,5 @@ void btree_foreach(btree* bt, void (*ptr)(struct kv_pair* value)) {
 
 void btree_free(btree* bt) {
     node_free(bt -> root);
+    free(bt -> root);
 }
