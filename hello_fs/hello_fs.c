@@ -13,12 +13,12 @@ struct {
     char* content;
 } hello_file_info;
 
-void* init_fs(struct fuse_conn_info* fconn, struct fuse_config* fconf) {
-    fconf -> kernel_cache = 1;
+void* init_fs(struct fuse_conn_info* fconn) {
+    //fconf -> kernel_cache = 1;
     return NULL;
 }
 
-int get_attr(const char* name, struct stat* st, struct fuse_file_info* ffinfo) {
+int get_attr(const char* name, struct stat* st) {
     memset(st, 0, sizeof(struct stat));
     // we will have "/" and "/hello" calls only
     int error_ret = 0;
@@ -60,14 +60,14 @@ int read_file(const char* name, char* buf, size_t size, off_t offset,
 }
 
 int read_dir(const char* name, void* buf, fuse_fill_dir_t filler, off_t offset, 
-        struct fuse_file_info* ffinfo, enum fuse_readdir_flags flags) {
+        struct fuse_file_info* ffinfo) {
     if(strcmp(name, "/") != 0) {
         return -1;
     }
 
-    filler(buf, ".", NULL, 0, 0);
-    filler(buf, "..", NULL, 0, 0);
-    filler(buf, hello_file_info.name, NULL, 0, 0);
+    filler(buf, ".", NULL, 0);
+    filler(buf, "..", NULL, 0);
+    filler(buf, hello_file_info.name, NULL, 0);
 
     return 0;
 }
