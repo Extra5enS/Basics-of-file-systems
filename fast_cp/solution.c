@@ -9,7 +9,7 @@
 #include <sys/stat.h>
 #include <sys/ioctl.h>
 
-#include "include/liburing.h"
+#include <liburing.h>
 
 #define N 4
 #define COPY_SIZE (1L << 18)
