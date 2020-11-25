@@ -35,8 +35,8 @@ void btree_insert(btree* bt, int64_t key, int64_t value) {
         bt -> root = newn;
         newn -> leaf = 0;
         newn -> size = 0;
-        newn -> nodes[1] = root;
-        node_split_child(newn, 1);
+        newn -> nodes[0] = root;
+        node_split_child(newn, 0);
         node_insert_nonfull(newn, key, value);
     } else {
         node_insert_nonfull(root, key, value);

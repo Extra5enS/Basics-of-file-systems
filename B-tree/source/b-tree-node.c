@@ -26,10 +26,10 @@ void node_init(struct node* n, size_t t) {
 }
 
 struct ans node_search(struct node* n, int64_t key) {
-    size_t i = 1;
+    size_t i = 0;
     
-    for(;i <= n -> size && key > n -> pairs[i].key; ++i);
-    if(i <= n -> size && key == n -> pairs[i].key) {
+    for(;i < n -> size && key > n -> pairs[i].key; ++i);
+    if(i < n -> size && key == n -> pairs[i].key) {
         struct ans a = { n, i };
         return a;
     } else if (n -> leaf) {
@@ -47,33 +47,33 @@ void node_split_child(struct node* n, size_t i) {
     newn -> leaf = child -> leaf;
     newn -> size = n -> t - 1;
 
-    for(size_t j = 1; j <= n -> t - 1; ++j) {
+    for(size_t j = 0; j < n -> t - 1; ++j) {
         newn -> pairs[j] = child -> pairs[j + n -> t];
     }
 
     if(!child -> leaf) {
-        for(size_t j = 1; j <= n -> t; ++j) {
+        for(size_t j = 0; j < n -> t; ++j) {
             newn -> nodes[j] = child -> nodes[j + n -> t];
         }
     }
     child -> size = n -> t - 1;
-    for(size_t j = n -> size + 1; j >= i + 1; --j) {
+    for(int64_t j = (int64_t)(n -> size) - 1; j >= int64_t(i); --j) {
         n -> nodes[j + 1] = n -> nodes[j];
     }
     n -> nodes[i + 1] = newn;
     
-    for(size_t j = n -> size; j >= i; --j) {
+    for(int64_t j = (int64_t)(n -> size) - 1; j + 1 >= int64_t(i); --j) {
         n -> pairs[j + 1] = n -> pairs[j];
     }
 
-    n -> pairs[i] = child -> pairs[n -> t];
+    n -> pairs[i] = child -> pairs[n -> t - 1];
     n -> size++;
 }
 
 void node_insert_nonfull(struct node* n, int64_t key, int64_t value) {
-    int64_t i = n -> size;
+    int64_t i = n -> size - 1;
     if(n -> leaf) {
-        for(;i >= 1 && key < n -> pairs[i].key; --i) {
+        for(;i >= 0 && key < n -> pairs[i].key; --i) {
             n -> pairs[i + 1] = n -> pairs[i];
         }
         struct kv_pair kvp;
@@ -81,7 +81,7 @@ void node_insert_nonfull(struct node* n, int64_t key, int64_t value) {
         n -> pairs[i + 1] = kvp;
         n -> size++;
     } else {
-        for(;i >= 1 && key < n -> pairs[i].key; --i);
+        for(;i >= 0 && key < n -> pairs[i].key; --i);
         ++i;
         if(n -> nodes[i] -> size == 2 * n -> t - 1) {
             node_split_child(n, i);
@@ -97,14 +97,14 @@ void node_foreach(struct node* n, void (*ptr)(struct kv_pair* value)) {
     if(n == NULL) {
         return;
     }
-    for(size_t i = 1; i <= n -> size; ++i) {
+    for(size_t i = 0; i < n -> size; ++i) {
         node_foreach(n -> nodes[i], ptr);
         if(!n -> pairs[i].is_delete) {
             ptr(&n->pairs[i]);
         }
     } 
-    if(n -> nodes[n -> size + 1]) {
-        node_foreach(n -> nodes[n -> size + 1], ptr);
+    if(n -> nodes[n -> size]) {
+        node_foreach(n -> nodes[n -> size], ptr);
     }
 }
 
@@ -112,12 +112,12 @@ void node_free(struct node* n) {
     if(n == NULL) {
         return;
     }
-    for(size_t i = 1; i <= n -> size; ++i) {
+    for(size_t i = 0; i < n -> size; ++i) {
         node_free(n -> nodes[i]);
         free(n -> nodes[i]);
     } 
-    node_free(n -> nodes[n -> size + 1]);
-    free(n -> nodes[n -> size + 1]);
+    node_free(n -> nodes[n -> size]);
+    free(n -> nodes[n -> size]);
     
     free(n -> nodes);
     free(n -> pairs);
