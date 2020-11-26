@@ -30,8 +30,12 @@ struct ans node_search(struct node* n, int64_t key) {
     
     for(;i < n -> size && key > n -> pairs[i].key; ++i);
     if(i < n -> size && key == n -> pairs[i].key) {
-        struct ans a = { n, i };
-        return a;
+        if(n -> leaf) {
+            struct ans a = { n, i };
+            return a;
+        } else { 
+            return node_search(n -> nodes[i], key);
+        }
     } else if (n -> leaf) {
         struct ans a  = { NULL, 0 };
         return a;
@@ -56,7 +60,8 @@ void node_split_child(struct node* n, size_t i) {
             newn -> nodes[j] = child -> nodes[j + n -> t];
         }
     }
-    child -> size = n -> t - 1;
+    // this chosen is based on redument keys in no leaf nodes
+    child -> size = (child -> leaf)? n -> t : n -> t - 1;
     for(int64_t j = (int64_t)(n -> size) - 1; j >= int64_t(i); --j) {
         n -> nodes[j + 1] = n -> nodes[j];
     }
@@ -99,13 +104,11 @@ void node_foreach(struct node* n, void (*ptr)(struct kv_pair* value)) {
     }
     for(size_t i = 0; i < n -> size; ++i) {
         node_foreach(n -> nodes[i], ptr);
-        if(!n -> pairs[i].is_delete) {
+        if(!n -> pairs[i].is_delete && n -> leaf) {
             ptr(&n->pairs[i]);
         }
     } 
-    if(n -> nodes[n -> size]) {
-        node_foreach(n -> nodes[n -> size], ptr);
-    }
+    node_foreach(n -> nodes[n -> size], ptr);
 }
 
 void node_free(struct node* n) {
@@ -115,10 +118,30 @@ void node_free(struct node* n) {
     for(size_t i = 0; i < n -> size; ++i) {
         node_free(n -> nodes[i]);
         free(n -> nodes[i]);
-    } 
+    }
     node_free(n -> nodes[n -> size]);
-    free(n -> nodes[n -> size]);
-    
+
     free(n -> nodes);
     free(n -> pairs);
+}
+
+void node_depth(struct node* n, size_t next_depth, size_t* max_lvl) {
+    if(n == NULL) {
+        if(*max_lvl < next_depth) {
+            *max_lvl = next_depth;
+        }
+        return;
+    }
+    for(size_t i = 0; i <= n -> size; ++i) {
+        node_depth(n -> nodes[i], next_depth + 1, max_lvl);
+    } 
+}
+
+void node_merge(struct node* ltree, struct node* rtree) {
+    size_t lsize = 0, rsize = 0;
+    node_depth(ltree, 0, &lsize);
+    node_depth(rtree, 0, &rsize);
+    
+    printf("ltree depth = %lu, rtree depth = %lu\n", lsize, rsize);
+
 }
