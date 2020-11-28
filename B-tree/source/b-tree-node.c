@@ -1,6 +1,15 @@
-
 #include "../include/b-tree-node.h"
 #include <stdio.h>
+
+#define max(lv, rv) ((lv) < (rv))?(rv):(lv)
+
+int64_t pow(int64_t base, int64_t f) {
+    int64_t res = 1;
+    for(int64_t i = 0; i < f; ++i) {
+        res *= base;
+    }
+    return res;
+}
 
 void kv_pair_init(struct kv_pair* kvp, int64_t key, int64_t value) {
     kvp -> key = key;
@@ -9,12 +18,12 @@ void kv_pair_init(struct kv_pair* kvp, int64_t key, int64_t value) {
 }
 
 int kv_pair_cmp(void* lv, void* rv) {
-    struct kv_pair* lpair = (struct kv_pair*) lv;
-    struct kv_pair* rpair = (struct kv_pair*) rv;
-    if(lpair -> key == rpair -> key) {
-        return lpair -> value - rpair -> value;
+    struct kv_pair* lkv_pair = (struct kv_pair*) lv;
+    struct kv_pair* rkv_pair = (struct kv_pair*) rv;
+    if(lkv_pair -> key == rkv_pair -> key) {
+        return lkv_pair -> value - rkv_pair -> value;
     }
-    return lpair -> key - rpair -> key;
+    return lkv_pair -> key - rkv_pair -> key;
 }
 
 void node_init(struct node* n, size_t t) {
@@ -137,11 +146,65 @@ void node_depth(struct node* n, size_t next_depth, size_t* max_lvl) {
     } 
 }
 
+void node_table_write(struct node* n, struct kv_pair** table, size_t* tsize, size_t lvl) {
+    if(n == NULL) {
+        return;
+    }
+    for(size_t i = 0; i < n -> size; ++i) {
+        node_table_write(n -> nodes[i], table, tsize, lvl + 1);
+        table[lvl][tsize[lvl]++] = n -> pairs[i];
+    }
+    node_table_write(n -> nodes[n -> size], table, tsize, lvl + 1);
+}
+
 void node_merge(struct node* ltree, struct node* rtree) {
     size_t lsize = 0, rsize = 0;
     node_depth(ltree, 0, &lsize);
     node_depth(rtree, 0, &rsize);
+    int max_lvl = max(lsize, rsize);
     
-    printf("ltree depth = %lu, rtree depth = %lu\n", lsize, rsize);
+    struct kv_pair** value_lvl_store = 
+        (struct kv_pair**)calloc(max_lvl, sizeof(struct kv_pair*));
+    struct kv_pair** lvalue_lvl_store = 
+        (struct kv_pair**)calloc(max_lvl, sizeof(struct kv_pair*));
+    struct kv_pair** rvalue_lvl_store = 
+        (struct kv_pair**)calloc(max_lvl, sizeof(struct kv_pair*));
+    
+    // i = 0 is empty lvl for now root node
+    for(int i = 0; i < max_lvl + 1; ++i) {
+        value_lvl_store[i] = 
+            (struct kv_pair*)calloc(pow(ltree -> t * 2 - 1, i + 1), sizeof(struct kv_pair));
+        lvalue_lvl_store[i] = 
+            (struct kv_pair*)calloc(pow(ltree -> t * 2 - 1, i + 1), sizeof(struct kv_pair));
+        rvalue_lvl_store[i] = 
+            (struct kv_pair*)calloc(pow(ltree -> t * 2 - 1, i + 1), sizeof(struct kv_pair));
+    } 
 
+    //size_t llvlsize = 0, rlvlsize = 0;
+    size_t* ltsize = (size_t*)calloc(max_lvl + 1, sizeof(size_t));
+    size_t* rtsize = (size_t*)calloc(max_lvl + 1, sizeof(size_t));
+
+    node_table_write(ltree, lvalue_lvl_store, ltsize, 1);
+    node_table_write(rtree, rvalue_lvl_store, rtsize, 1);
+
+    // merge all
+    for(int i = 1; i <= max_lvl; ++i) {
+        
+    }
+    // work with lower lvl
+    
+
+    // work with other lvls
+
+
+    for(int i = 0; i < max_lvl + 1; ++i) {
+        free(value_lvl_store[i]);
+        free(lvalue_lvl_store[i]);
+        free(rvalue_lvl_store[i]);
+    }
+    free(ltsize);
+    free(rtsize);
+    free(value_lvl_store);
+    free(lvalue_lvl_store);
+    free(rvalue_lvl_store);
 }
