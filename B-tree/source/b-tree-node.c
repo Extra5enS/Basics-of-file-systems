@@ -157,54 +157,108 @@ void node_table_write(struct node* n, struct kv_pair** table, size_t* tsize, siz
     node_table_write(n -> nodes[n -> size], table, tsize, lvl + 1);
 }
 
+void print_table(kv_pair** table, size_t* tsize, int max_lvl) {
+    for(int i = 0; i < max_lvl + 1; ++i) {
+        for(size_t j = 0; j < tsize[i]; ++j) {
+            printf("%ld ", table[i][j].key);
+        }
+        putchar('\n');
+    } 
+}
+/*
+int find_table(kv_pair** table, size_t* tsize, int max_lvl, int64_t key) {
+    for(int i = 0; i < max_lvl + 1; ++i) {
+        for(size_t j = 0; j < tsize[i]; ++j) {
+            
+        }
+    } 
+}*/
+
 void node_merge(struct node* ltree, struct node* rtree) {
     size_t lsize = 0, rsize = 0;
     node_depth(ltree, 0, &lsize);
     node_depth(rtree, 0, &rsize);
     int max_lvl = max(lsize, rsize);
     
-    struct kv_pair** value_lvl_store = 
-        (struct kv_pair**)calloc(max_lvl, sizeof(struct kv_pair*));
-    struct kv_pair** lvalue_lvl_store = 
-        (struct kv_pair**)calloc(max_lvl, sizeof(struct kv_pair*));
-    struct kv_pair** rvalue_lvl_store = 
-        (struct kv_pair**)calloc(max_lvl, sizeof(struct kv_pair*));
+    struct kv_pair** value_lvl_table = 
+        (struct kv_pair**)calloc(max_lvl + 1, sizeof(struct kv_pair*));
+    struct kv_pair** lvalue_lvl_table = 
+        (struct kv_pair**)calloc(max_lvl + 1, sizeof(struct kv_pair*));
+    struct kv_pair** rvalue_lvl_table = 
+        (struct kv_pair**)calloc(max_lvl + 1, sizeof(struct kv_pair*));
     
     // i = 0 is empty lvl for now root node
     for(int i = 0; i < max_lvl + 1; ++i) {
-        value_lvl_store[i] = 
+        value_lvl_table[i] = 
             (struct kv_pair*)calloc(pow(ltree -> t * 2 - 1, i + 1), sizeof(struct kv_pair));
-        lvalue_lvl_store[i] = 
+        lvalue_lvl_table[i] = 
             (struct kv_pair*)calloc(pow(ltree -> t * 2 - 1, i + 1), sizeof(struct kv_pair));
-        rvalue_lvl_store[i] = 
+        rvalue_lvl_table[i] = 
             (struct kv_pair*)calloc(pow(ltree -> t * 2 - 1, i + 1), sizeof(struct kv_pair));
     } 
 
     //size_t llvlsize = 0, rlvlsize = 0;
     size_t* ltsize = (size_t*)calloc(max_lvl + 1, sizeof(size_t));
     size_t* rtsize = (size_t*)calloc(max_lvl + 1, sizeof(size_t));
+    size_t* tsize = (size_t*)calloc(max_lvl + 1, sizeof(size_t));
 
-    node_table_write(ltree, lvalue_lvl_store, ltsize, 1);
-    node_table_write(rtree, rvalue_lvl_store, rtsize, 1);
-
-    // merge all
-    for(int i = 1; i <= max_lvl; ++i) {
-        
-    }
-    // work with lower lvl
+    node_table_write(ltree, lvalue_lvl_table, ltsize, 1);
+    node_table_write(rtree, rvalue_lvl_table, rtsize, 1);
     
+    // merge all
+    for(int i = 1; i < max_lvl + 1; ++i) {
+        size_t liter = 0, riter = 0, resiter = 0;
+        kv_pair* lline = lvalue_lvl_table[i];
+        kv_pair* rline = rvalue_lvl_table[i];
+        kv_pair* resline = value_lvl_table[i];
+        while(liter != ltsize[i] || riter != rtsize[i]) {
+            if((lline[liter].key < rline[riter].key && 
+                        liter != ltsize[i])|| riter == rtsize[i]) {
+                resline[resiter++] = lline[liter++];
+            } else {
+                resline[resiter++] = rline[riter++];
+            }
+        }
+        tsize[i] = resiter;
+    }
 
-    // work with other lvls
+    print_table(value_lvl_table, tsize, max_lvl); 
 
-
+    for(int titer = max_lvl; titer > 0; --titer) {
+        size_t counter_for_t = 0;
+        size_t  up_iter = 0;
+        kv_pair* lower_line = value_lvl_table[titer];
+        kv_pair* prevl_line = value_lvl_table[titer - 1];
+        for(size_t i = 0; i < tsize[titer]; ++i) {
+            counter_for_t++;
+            if(up_iter != tsize[titer - 1] && 
+                    lower_line[i].key > prevl_line[up_iter].key) {
+                counter_for_t = 1;
+                up_iter++;
+            } else if (counter_for_t == ltree -> t * 2) { 
+                // add new key to next lvl
+                for(size_t j = tsize[titer - 1]; j > up_iter; --j) {
+                    prevl_line[j] = prevl_line[j - 1];
+                }
+                prevl_line[up_iter++] = lower_line[i - ltree -> t];
+                tsize[titer - 1]++;
+                counter_for_t = ltree -> t;
+            }
+        }
+    }
+    
+    print_table(value_lvl_table, tsize, max_lvl);
+    
+    
     for(int i = 0; i < max_lvl + 1; ++i) {
-        free(value_lvl_store[i]);
-        free(lvalue_lvl_store[i]);
-        free(rvalue_lvl_store[i]);
+        free(value_lvl_table[i]);
+        free(lvalue_lvl_table[i]);
+        free(rvalue_lvl_table[i]);
     }
     free(ltsize);
     free(rtsize);
-    free(value_lvl_store);
-    free(lvalue_lvl_store);
-    free(rvalue_lvl_store);
+    free(tsize);
+    free(value_lvl_table);
+    free(lvalue_lvl_table);
+    free(rvalue_lvl_table);
 }

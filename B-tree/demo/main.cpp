@@ -30,16 +30,24 @@ int main() {
     btree_foreach(&btr, print);
     printf("----\n");  
     printf("merge test\n");
-    uint64_t mmt1[5] = {1, 3, 5, 7, 9};
-    uint64_t mmt2[5] = {0, 2, 4, 6, 8};
+    uint64_t mmt1[20] = {1, 3, 5, 7, 9, 
+                         11, 13, 15, 17, 19, 
+                         21, 23, 25, 27, 29, 
+                         31, 33, 35, 37, 39};
+    uint64_t mmt2[20] = {0, 2, 4, 6, 8, 
+                         10, 12, 14, 16, 18, 
+                         20, 22, 24, 26, 28, 
+                         30, 32, 34, 36, 38};
     btree mt1, mt2;
     btree_init(&mt1, 2);
     btree_init(&mt2, 2);
-    for(int i = 0; i < 5; ++i) {
+    for(int i = 0; i < 20; ++i) {
        btree_insert(&mt1, mmt1[i], i); 
        btree_insert(&mt2, mmt2[i], i); 
     }
     node_merge(mt1.root, mt2.root);
     btree_free(&btr);
+    btree_free(&mt1);
+    btree_free(&mt2);
     return 0;
 }
