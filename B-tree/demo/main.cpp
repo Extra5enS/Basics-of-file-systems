@@ -45,9 +45,13 @@ int main() {
        btree_insert(&mt1, mmt1[i], i); 
        btree_insert(&mt2, mmt2[i], i); 
     }
-    node_merge(mt1.root, mt2.root);
+    btree merged = btree_merge(&mt1, &mt2);
+    printf("----\n");  
+    btree_foreach(&merged, print);
+    printf("----\n");  
     btree_free(&btr);
     btree_free(&mt1);
     btree_free(&mt2);
+    btree_free(&merged);
     return 0;
 }

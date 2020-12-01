@@ -31,7 +31,7 @@ struct ans node_search(struct node* n, int64_t key);
 void node_erase(struct node* n, int64_t key);
 void node_foreach(struct node* n, void (*)(struct kv_pair* value));
 
-void node_merge(struct node* ln, struct node* rn);
+struct node* node_merge(struct node* ln, struct node* rn);
 
 void node_split_child(struct node* n, size_t i);
 void node_insert_nonfull(struct node* n, int64_t key, int64_t value); 

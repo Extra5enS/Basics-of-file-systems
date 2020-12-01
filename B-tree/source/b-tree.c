@@ -61,3 +61,9 @@ void btree_free(btree* bt) {
     node_free(bt -> root);
     free(bt -> root);
 }
+
+btree btree_merge(btree* ltree, btree* rtree) {
+    btree res_tree;
+    res_tree.root = node_merge(ltree -> root, rtree -> root);
+    return res_tree;
+}
