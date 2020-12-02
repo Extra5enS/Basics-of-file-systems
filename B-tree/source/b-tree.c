@@ -24,7 +24,7 @@ void btree_insert(btree* bt, int64_t key, int64_t value) {
         }
         a.n -> pairs[a.i].value = value;
         return;
-    } 
+    }
 
     struct node* root = bt -> root;
     

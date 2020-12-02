@@ -28,14 +28,16 @@ int kv_pair_cmp(void* lv, void* rv) {
 }
 
 void node_init(struct node* n, size_t t) {
+    n -> pairs = (struct kv_pair*)calloc(2 * t + 2, sizeof(struct kv_pair));
+    n -> nodes = (struct node**)calloc(2 * t + 2, sizeof(struct node*));
+    
     n -> t = t;
     n -> size = 0;
     n -> leaf = 1;
-    n -> pairs = (struct kv_pair*)calloc(2 * t + 2, sizeof(struct kv_pair));
-    n -> nodes = (struct node**)calloc(2 * t + 2, sizeof(struct node*));
 }
 
 struct ans node_search(struct node* n, int64_t key) {
+    //printf("call %s with %p\n", "search", n);
     size_t i = 0;
     
     for(;i < n -> size && key > n -> pairs[i].key; ++i);
@@ -43,7 +45,7 @@ struct ans node_search(struct node* n, int64_t key) {
         if(n -> leaf) {
             struct ans a = { n, i };
             return a;
-        } else { 
+        } else {
             return node_search(n -> nodes[i], key);
         }
     } else if (n -> leaf) {
@@ -55,7 +57,8 @@ struct ans node_search(struct node* n, int64_t key) {
 }
 
 void node_split_child(struct node* n, size_t i) {
-    struct node* newn = (struct node*)malloc(sizeof(struct node));
+    //printf("call %s with %p\n", "split_child", n);
+    struct node* newn = (struct node*)calloc(1, sizeof(struct node));
     node_init(newn, n -> t);
     struct node* child = n -> nodes[i];
     newn -> leaf = child -> leaf;
@@ -72,12 +75,12 @@ void node_split_child(struct node* n, size_t i) {
     }
     // this chosen is based on redument keys in no leaf nodes
     child -> size = (child -> leaf)? n -> t : n -> t - 1;
-    for(int64_t j = (int64_t)(n -> size) - 1; j >= int64_t(i); --j) {
+    for(int64_t j = (int64_t)(n -> size); j >= int64_t(i) + 1; --j) {
         n -> nodes[j + 1] = n -> nodes[j];
     }
     n -> nodes[i + 1] = newn;
     
-    for(int64_t j = (int64_t)(n -> size) - 1; j + 1 >= int64_t(i); --j) {
+    for(int64_t j = (int64_t)(n -> size) - 1; j >= int64_t(i); --j) {
         n -> pairs[j + 1] = n -> pairs[j];
     }
 
@@ -86,6 +89,7 @@ void node_split_child(struct node* n, size_t i) {
 }
 
 void node_insert_nonfull(struct node* n, int64_t key, int64_t value) {
+    //printf("call %s with %p\n", "insert_nonfull", n);
     int64_t i = n -> size - 1;
     if(n -> leaf) {
         for(;i >= 0 && key < n -> pairs[i].key; --i) {
@@ -169,6 +173,8 @@ void print_table(kv_pair** table, size_t* tsize, int max_lvl) {
     }
 }
 
+
+
 void table2btree(struct node* root, struct kv_pair** table, size_t* tsize, 
         int lvl, int max_lvl, int64_t low_r, int64_t up_r) {
     
@@ -227,9 +233,12 @@ struct node* node_merge(struct node* ltree, struct node* rtree) {
     size_t liter = 0, riter = 0, resiter = 0;
     struct kv_pair* resline = value_lvl_table[max_lvl];
     while(liter != lsize || riter != rsize) {
-        if((lline[liter].key < rline[riter].key && 
+        if((lline[liter].key <= rline[riter].key && 
                     liter != lsize)|| riter == rsize) {
             resline[resiter++] = lline[liter++];
+            if(lline[liter - 1].key == rline[riter].key) {
+                riter++;
+            }
         } else {
             resline[resiter++] = rline[riter++];
         }
@@ -271,8 +280,8 @@ struct node* node_merge(struct node* ltree, struct node* rtree) {
     for(int i = 0; i < max_lvl + 1; ++i) {
         free(value_lvl_table[i]);
     }
-    free(tsize);
     free(value_lvl_table);
+    free(tsize);
     free(lline);
     free(rline);
 
