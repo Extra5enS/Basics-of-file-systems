@@ -173,8 +173,6 @@ void print_table(kv_pair** table, size_t* tsize, int max_lvl) {
     }
 }
 
-
-
 void table2btree(struct node* root, struct kv_pair** table, size_t* tsize, 
         int lvl, int max_lvl, int64_t low_r, int64_t up_r) {
     

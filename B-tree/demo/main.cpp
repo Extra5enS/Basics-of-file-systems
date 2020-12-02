@@ -92,6 +92,19 @@ int main() {
     sec = end.tv_sec - start.tv_sec;
     printf("%s:%lds, %ldus\n", "btree insert", 
             (usec < 0) ? (sec - 1) : (sec), (usec < 0) ? (~usec) : (usec));
+    int64_t counter = 0;
+    for(int64_t i = 0; i < TEST_ARRAY_SIZE; ++i) {
+        int64_t value = 9;
+        btree_search(&test_tree, big_array[i], &value);
+        if(test_map[big_array[i]] != value) {
+            ++counter;
+        } 
+    }
+    if(counter == 0) {
+        printf("Succes\n");
+    } else {
+        printf("Fail\n");
+    }
 
     free(big_array);
     btree_free(&test_tree);
