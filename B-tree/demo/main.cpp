@@ -1,9 +1,9 @@
-#include"../include/b-tree.h"
 #include <stdio.h>
 #include <sys/time.h>
 #include <limits.h>
-
 #include <map>
+
+#include "../include/b-tree.h"
 
 #define TEST_ARRAY_SIZE (1l << 15)//(1l << 22)
 
@@ -61,7 +61,7 @@ int main() {
     btree_foreach(&merged, print);
     printf("----\n");  
     
-    printf("time test\n");
+    printf("time test with 2^15 inserts\n");
     int64_t sec, usec;
     std::map<int64_t, int64_t> test_map;
     btree test_tree;
@@ -101,7 +101,7 @@ int main() {
         } 
     }
     if(counter == 0) {
-        printf("Succes\n");
+        printf("Success\n");
     } else {
         printf("Fail\n");
     }
@@ -111,6 +111,7 @@ int main() {
     btree_free(&btr);
     btree_free(&mt1);
     btree_free(&mt2);
-    //btree_free(&merged);
+    btree_free(&merged);
     return 0;
 }
+

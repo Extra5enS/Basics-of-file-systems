@@ -1,7 +1,8 @@
-CC = g++
+CC = gcc
+LINK = g++
 KEY = -Wall -Werror
 NOLINK = -c
-
+LIBNAME = btree
 
 all: 
 	$(CC) source/b-tree-node.c $(KEY) $(NOLINK)
@@ -9,14 +10,15 @@ all:
 
 demo: all
 	mkdir build -p
-	$(CC) *.o demo/main.cpp -o build/demo
+	$(LINK) demo/main.cpp $(KEY) $(NOLINK)
+	$(LINK) *.o -o build/demo
 	rm *.o
 
 show: demo
 	./build/demo
 
 clean:	
-	rm *.o -f
+	rm *.o *.a -f
 	rm -fr build
 
 

@@ -2,6 +2,9 @@
 #define B_TREE
 #include "b-tree-node.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 typedef struct {
     struct node* root;
@@ -14,5 +17,10 @@ int btree_erase(btree* bt, int64_t);
 btree btree_merge(btree* bt, btree* nextbt);
 void btree_foreach(btree* bt, void (*)(struct kv_pair* value));
 void btree_free(btree* bt);
+
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

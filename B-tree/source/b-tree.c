@@ -2,7 +2,7 @@
 #include<stdio.h>
 
 void btree_init(btree* bt, size_t t) {
-    bt -> root = (struct node*) malloc(sizeof(struct node));
+    bt -> root = (struct node*) xmalloc(1, sizeof(struct node));
     node_init(bt -> root, t);
 }
 
@@ -29,7 +29,7 @@ void btree_insert(btree* bt, int64_t key, int64_t value) {
     struct node* root = bt -> root;
     
     if(root -> size == 2 * root -> t - 1) {
-        struct node* newn = (struct node*) malloc(sizeof(struct node));
+        struct node* newn = (struct node*) xmalloc(1, sizeof(struct node));
         node_init(newn, root -> t);
 
         bt -> root = newn;

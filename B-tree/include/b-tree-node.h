@@ -2,7 +2,7 @@
 #define B_TREE_NODE
 
 #include<stdlib.h>
-#include<stdint.h>
+#include<inttypes.h>
 
 struct kv_pair {
     int64_t key, value;
@@ -37,5 +37,7 @@ void node_split_child(struct node* n, size_t i);
 void node_insert_nonfull(struct node* n, int64_t key, int64_t value); 
 
 void node_free(struct node* n);
+
+void* xmalloc(size_t count, size_t size);
 
 #endif
