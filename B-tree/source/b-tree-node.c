@@ -5,7 +5,7 @@
 #define max(lv, rv) ((lv) < (rv))?(rv):(lv)
 
 void* xmalloc(size_t count, size_t size) {
-    void* pointer = calloc(count, size);
+    void* pointer = malloc(count * size);
     if(pointer < 0) {
         exit(-1);
     }
@@ -186,13 +186,15 @@ void btree2table(struct node* n, struct kv_pair* line, size_t* tsize) {
     btree2table(n -> nodes[n -> size], line, tsize);
 }
 
-void print_table(struct kv_pair** table, size_t* tsize, int max_lvl) {
-    for(int i = 0; i < max_lvl + 1; ++i) {
-        for(size_t j = 0; j < tsize[i]; ++j) {
-            printf("%ld ", table[i][j].key);
+void print_table(struct node** table, size_t size) {
+    printf("%lu\n", size);
+    for(int i = 0; i < size; ++i) {
+        for(size_t j = 0; j < table[i] -> size; ++j) {
+            printf("%ld ", table[i] -> pairs[j].key);
         }
-        putchar('\n');
+        printf("| ");
     }
+    putchar('\n');
 }
 
 void table2btree(struct node* root, struct kv_pair** table, size_t* tsize, 
@@ -231,30 +233,32 @@ struct node* node_merge(struct node* ltree, struct node* rtree) {
     node_depth(rtree, 0, &rsize);
     int max_lvl = max(lsize, rsize);
     
-    struct kv_pair** value_lvl_table = xmalloc(max_lvl + 1, sizeof(struct kv_pair*));
-    
-    for(int i = 0; i < max_lvl + 1; ++i) { 
-        value_lvl_table[i] = xmalloc(my_pow(ltree -> t * 2, i + 1), sizeof(struct kv_pair));
-    }
-    
-    struct kv_pair* lline = xmalloc(my_pow(ltree -> t * 2, max_lvl + 1), sizeof(struct kv_pair));
-    struct kv_pair* rline = xmalloc(my_pow(ltree -> t * 2, max_lvl + 1), sizeof(struct kv_pair));
+    struct kv_pair* rline = xmalloc(my_pow(ltree -> t * 2 + 1, max_lvl + 1), sizeof(struct kv_pair));
+    struct kv_pair* lline = xmalloc(my_pow(ltree -> t * 2 + 1, max_lvl + 1), sizeof(struct kv_pair));
 
-    size_t* tsize = xmalloc(max_lvl + 1, sizeof(size_t));
     lsize = 0;
     rsize = 0;
 
     btree2table(ltree, lline, &lsize);
     btree2table(rtree, rline, &rsize);
     
+    struct node** low_line = xmalloc((lsize + rsize) / ltree -> t, sizeof(struct node*));
+    size_t line_size = (lsize + rsize) / ltree -> t;
+    for(int i = 0; i < line_size; ++i) {
+        low_line[i] = xmalloc(1, sizeof(struct node));
+        node_init(low_line[i], ltree -> t);
+    }
+            
     // merge
-    size_t liter = 0, riter = 0, resiter = 0;
-    struct kv_pair* resline = value_lvl_table[max_lvl];
+    size_t liter = 0, riter = 0;
+    size_t glob_iter = 0, loc_iter = 0;
+
     while(liter != lsize || riter != rsize) {
         if((lline[liter].key <= rline[riter].key && 
                     liter != lsize)|| riter == rsize) {
             if(!lline[liter].is_delete) {
-                resline[resiter++] = lline[liter++];
+                low_line[glob_iter] -> pairs[loc_iter++] = lline[liter++];
+                low_line[glob_iter] -> size++;
             } else {
                 liter++;
             }
@@ -263,14 +267,29 @@ struct node* node_merge(struct node* ltree, struct node* rtree) {
             }
         } else {
             if(!rline[riter].is_delete) {
-                resline[resiter++] = rline[riter++];
+                low_line[glob_iter] -> pairs[loc_iter++] = rline[riter++];
+                low_line[glob_iter] -> size++;
             } else {
                 riter++;
             }
         }
+        if(loc_iter == ltree -> t) {
+            glob_iter++;
+            loc_iter = 0;
+        }
     }
-    tsize[max_lvl] = resiter;
-
+     
+    print_table(low_line, glob_iter);
+    
+    //struct node* node_copy = NULL;
+    //size_t tsize = glob_iter;
+    //size_t copy_tsize = 0;
+    //while(1) {
+        for(int i = 0; i < glob_iter; ++i) {
+            
+        }
+    //}
+    /*
     // creat info for all noleaf nodes
     for(int titer = max_lvl; titer > 0; --titer) {
         size_t counter_for_t = 0;
@@ -302,14 +321,9 @@ struct node* node_merge(struct node* ltree, struct node* rtree) {
     node_init(root, ltree -> t);
     table2btree(root, value_lvl_table, tsize,
             0, max_lvl, LLONG_MIN, LLONG_MAX); 
-
-    for(int i = 0; i < max_lvl + 1; ++i) {
-        free(value_lvl_table[i]);
-    }
-    free(value_lvl_table);
-    free(tsize);
-    free(lline);
+    */
     free(rline);
-
-    return root;
+    free(lline);
+    free(low_line);
+    return NULL;
 }
