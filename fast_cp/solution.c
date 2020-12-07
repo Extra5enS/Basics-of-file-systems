@@ -84,7 +84,8 @@ int main(int argc, char** argv) {
 
     struct io_uring ring;
     if(io_uring_queue_init(2 * N, &ring, 0) < 0) {
-        printf("io_uring_queue_init error\n");
+        //printf("io_uring_queue_init error\n");
+        perror("io_uring_queue_inti error");
         return -1;
     }
     data_set read_set[N];
@@ -98,6 +99,8 @@ int main(int argc, char** argv) {
     // TODO cpy (^_^)
     off_t offset = 0;
     off_t write_size = 0;
+
+    // creat 4 read_messages
     for(int i = 0; i < N; ++i) {
         sqe = io_uring_get_sqe(&ring);
         io_uring_prep_readv(sqe, fd_in, &read_set[i].iov, 1, offset);
@@ -106,7 +109,7 @@ int main(int argc, char** argv) {
         io_uring_sqe_set_data(sqe, &read_set[i]);
     } 
     
-    //main part of copy
+    // main part of copy
     while(write_size != fsize) {
         int ret = io_uring_wait_cqe(&ring, &cqe);
         if(ret < 0) {
@@ -116,31 +119,28 @@ int main(int argc, char** argv) {
         winfo = io_uring_cqe_get_data(cqe);
         
         if(winfo->read) {
-            data_set* write_set = malloc(sizeof(write_set));
-            data_set_init(write_set, COPY_SIZE, fsize, 0);
-            data_set_cpy(write_set, winfo);
+            data_set write_set;
+            data_set_init(&write_set, COPY_SIZE, fsize, 0);
+            data_set_cpy(&write_set, winfo);
             
             // new read
             sqe = io_uring_get_sqe(&ring);
             io_uring_prep_readv(sqe, fd_in, &winfo -> iov, 1, offset);
             winfo -> offset = offset;
             offset += min(COPY_SIZE, fsize - offset);
-            io_uring_sqe_set_data(sqe, winfo);
+            io_uring_sqe_set_data(sqe, &winfo);
             
             // write
-            io_uring_prep_writev(sqe, fd_out, &write_set -> iov, 1, write_set -> offset);
-            io_uring_sqe_set_data(sqe, write_set);
+            io_uring_prep_writev(sqe, fd_out, &write_set.iov, 1, write_set.offset);
+            io_uring_sqe_set_data(sqe, &write_set);
 
         } else {
             write_size += winfo -> offset;
             data_set_free(winfo);
             free(winfo);
-        
         }
         io_uring_cqe_seen(&ring, cqe);
     }
-
-
 
     close(fd_out);
     close(fd_in);
