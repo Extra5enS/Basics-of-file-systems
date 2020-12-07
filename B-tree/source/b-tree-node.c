@@ -5,7 +5,7 @@
 #define max(lv, rv) ((lv) < (rv))?(rv):(lv)
 
 void* xmalloc(size_t count, size_t size) {
-    void* pointer = malloc(count * size);
+    void* pointer = calloc(count, size);
     if(pointer < 0) {
         exit(-1);
     }
@@ -156,7 +156,7 @@ void node_free(struct node* n) {
         free(n -> nodes[i]);
     }
     node_free(n -> nodes[n -> size]);
-
+    free(n -> nodes[n -> size]);
     free(n -> nodes);
     free(n -> pairs);
 }
@@ -197,33 +197,11 @@ void print_table(struct node** table, size_t size) {
     putchar('\n');
 }
 
-void table2btree(struct node* root, struct kv_pair** table, size_t* tsize, 
-        int lvl, int max_lvl, int64_t low_r, int64_t up_r) {
-    
-    size_t i = 0;
-    struct kv_pair* line = table[lvl];
-    size_t size = tsize[lvl];
-    size_t iter = 0;
-    for(;i < size && line[i].key <= low_r;++i);
-    for(;i < size && line[i].key <= up_r;++i) {
-        root -> pairs[iter++] = line[i];
-    }
-    root -> size = iter;
-    if(lvl == max_lvl) {
-        root -> leaf = 1;
-        return;
-    } 
-    root -> leaf = 0;
-    int64_t new_low_r = low_r;
-    int64_t new_up_r = root -> pairs[0].key;
-    for(size_t i = 0; i <= root -> size; ++i) {
-        root -> nodes[i] = xmalloc(1, sizeof(struct node));
-        node_init(root -> nodes[i], root -> t);
-        table2btree(root -> nodes[i], table, tsize, 
-                lvl + 1, max_lvl, new_low_r, new_up_r);
-        
-        new_low_r = new_up_r;
-        new_up_r = (i == root -> size - 1) ? up_r : root -> pairs[i + 1].key;
+int64_t node_find_max(struct node* n) {
+    if(n -> leaf) {
+        return n -> pairs[n -> size - 1].key;
+    } else {
+        return node_find_max(n -> nodes[n -> size]);
     }
 }
 
@@ -242,13 +220,13 @@ struct node* node_merge(struct node* ltree, struct node* rtree) {
     btree2table(ltree, lline, &lsize);
     btree2table(rtree, rline, &rsize);
     
-    struct node** low_line = xmalloc((lsize + rsize) / ltree -> t, sizeof(struct node*));
-    size_t line_size = (lsize + rsize) / ltree -> t;
+    struct node** low_line = xmalloc((lsize + rsize) / ltree -> t + 1, sizeof(struct node*));
+    size_t line_size = (lsize + rsize) / ltree -> t + 1;
     for(int i = 0; i < line_size; ++i) {
         low_line[i] = xmalloc(1, sizeof(struct node));
-        node_init(low_line[i], ltree -> t);
+        node_init(low_line[i], ltree -> t);  
     }
-            
+    
     // merge
     size_t liter = 0, riter = 0;
     size_t glob_iter = 0, loc_iter = 0;
@@ -278,52 +256,41 @@ struct node* node_merge(struct node* ltree, struct node* rtree) {
             loc_iter = 0;
         }
     }
-     
-    print_table(low_line, glob_iter);
-    
-    //struct node* node_copy = NULL;
-    //size_t tsize = glob_iter;
-    //size_t copy_tsize = 0;
-    //while(1) {
-        for(int i = 0; i < glob_iter; ++i) {
-            
-        }
-    //}
-    /*
-    // creat info for all noleaf nodes
-    for(int titer = max_lvl; titer > 0; --titer) {
-        size_t counter_for_t = 0;
-        size_t up_iter = 0;
-        struct kv_pair* lower_line = value_lvl_table[titer];
-        struct kv_pair* prevl_line = value_lvl_table[titer - 1];
-        for(size_t i = 0; i < tsize[titer]; ++i) {
-            if(counter_for_t == ltree -> t * 2 - 1) { 
-                for(size_t j = tsize[titer - 1]; j > up_iter; --j) {
-                    prevl_line[j] = prevl_line[j - 1];
-                }
-                prevl_line[up_iter++] = lower_line[i - ltree -> t + 1];
-                tsize[titer - 1]++;
-                if(titer != max_lvl) {
-                    for(size_t j = i - ltree -> t + 1; j < tsize[titer] - 1; ++j) {
-                        lower_line[j] = lower_line[j + 1];
-                    }
-                    tsize[titer]--;
-                }
-                counter_for_t = ltree -> t;
-            }
-            counter_for_t++;
-        }
+
+    for(size_t i = glob_iter; i < line_size; ++i) {
+        node_free(low_line[i]);
+        free(low_line[i]);
     }
 
+    size_t tsize = glob_iter;
+    size_t next_tsize = 0;
+    struct node* node_copy = xmalloc(1, sizeof(struct node));
+    node_init(node_copy, ltree -> t);
+    node_copy -> leaf = 0;
+    while(tsize != 1) {
+        for(size_t i = 0; i < tsize; ++i) {
+            if(i % (2 * ltree -> t - 1) != 2*ltree -> t - 2 && i != tsize - 1) {
+                node_copy -> pairs[node_copy -> size].key = node_find_max(low_line[i]);
+                node_copy -> nodes[node_copy -> size++] = low_line[i];
+            } else {
+                node_copy -> nodes[node_copy -> size] = low_line[i];
+                low_line[next_tsize++] = node_copy;             
+                node_copy = xmalloc(1, sizeof(struct node));
+                node_init(node_copy, ltree -> t);
+                node_copy -> leaf = 0;
+            }
+        }
+        tsize = next_tsize;
+        next_tsize = 0;    
+    }
     
-    // creat new btree
-    struct node* root = xmalloc(1, sizeof(struct node));
-    node_init(root, ltree -> t);
-    table2btree(root, value_lvl_table, tsize,
-            0, max_lvl, LLONG_MIN, LLONG_MAX); 
-    */
+    struct node* root = low_line[0];
+    
+    node_free(node_copy);
+    free(node_copy);
     free(rline);
     free(lline);
     free(low_line);
-    return NULL;
+    
+    return root;
 }

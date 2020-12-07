@@ -1,6 +1,6 @@
 CC = gcc
 LINK = g++
-KEY = -Wall -Werror
+KEY = -Wall -Werror -O0
 NOLINK = -c
 LIBNAME = btree
 

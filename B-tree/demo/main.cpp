@@ -51,15 +51,14 @@ int main() {
        btree_insert(&mt1, mmt1[i], i); 
        btree_insert(&mt2, mmt2[i], i); 
     }
-    //btree merged = 
-    btree_merge(&mt1, &mt2);
+    btree merged = btree_merge(&mt1, &mt2);
     printf("----\n"); 
     printf("\n1 three\n");
     btree_foreach(&mt1, print);
     printf("\n2 three\n");
     btree_foreach(&mt2, print);
     printf("\nmerged\n");
-    //btree_foreach(&merged, print);
+    btree_foreach(&merged, print);
     printf("----\n");  
     
     printf("time test with 2^15 inserts\n");
@@ -107,11 +106,11 @@ int main() {
         printf("Fail\n");
     }
     free(big_array);
-    //btree_free(&test_tree);
+    btree_free(&test_tree);
     btree_free(&btr);
     btree_free(&mt1);
     btree_free(&mt2);
-    //btree_free(&merged);
+    btree_free(&merged);
     
     return 0;
 }
