@@ -40,4 +40,14 @@ void node_free(struct node* n);
 
 void* xmalloc(size_t count, size_t size);
 
+struct node_iter{
+    struct node* root;
+    struct kv_pair now_pair;
+    int low;
+    int up;
+};
+
+void node_iter_init(struct node_iter* ni, struct node* base);
+int node_iter_next(struct node_iter* ni, struct kv_pair* value);
+
 #endif

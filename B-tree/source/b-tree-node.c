@@ -4,6 +4,8 @@
 
 #define max(lv, rv) ((lv) < (rv))?(rv):(lv)
 
+
+
 void* xmalloc(size_t count, size_t size) {
     void* pointer = calloc(count, size);
     if(pointer < 0) {
@@ -58,10 +60,8 @@ void node_init(struct node* n, size_t t) {
 }
 
 struct ans node_search(struct node* n, int64_t key) {
-    //printf("call %s with %p\n", "search", n);
     size_t i = 0;
     
-    //for(;i < n -> size && key > n -> pairs[i].key; ++i);
     i = bin_search(n -> pairs, n -> size, key);
     if(i < n -> size && key == n -> pairs[i].key) {
         if(n -> leaf) {
@@ -173,19 +173,6 @@ void node_depth(struct node* n, size_t next_depth, size_t* max_lvl) {
     } 
 }
 
-void btree2table(struct node* n, struct kv_pair* line, size_t* tsize) {
-    if(n == NULL) {
-        return;
-    }
-    for(size_t i = 0; i < n -> size; ++i) {
-        btree2table(n -> nodes[i], line, tsize);
-        if(n -> leaf) {
-            line[(*tsize)++] = n -> pairs[i];
-        }
-    }
-    btree2table(n -> nodes[n -> size], line, tsize);
-}
-
 void print_table(struct node** table, size_t size) {
     printf("%lu\n", size);
     for(int i = 0; i < size; ++i) {
@@ -205,56 +192,120 @@ int64_t node_find_max(struct node* n) {
     }
 }
 
+void node_iter_init(struct node_iter* ni, struct node* base) {
+    ni -> root = base;
+    ni -> low = 1;
+    ni -> up = 0;
+}
+
+struct kv_pair __find_low(struct node* tree) {
+    if(tree -> leaf) {
+        return tree -> pairs[0];
+    } else {
+        return __find_low(tree -> nodes[0]);
+    }
+}
+
+int __search(struct node* tree, struct kv_pair* value) {
+    size_t i = bin_search(tree -> pairs, tree -> size, value -> key);
+    if(tree -> leaf) {
+        if(tree -> size == i) {
+            return -1;
+        } else {
+            *value = tree -> pairs[i];
+            return 0;
+        }
+    } else {
+        return __search(tree -> nodes[i], value);
+    }
+}
+
+int node_iter_next(struct node_iter* ni, struct kv_pair* value) {
+    if(ni -> up) {
+        return -1;
+    }
+    if(ni -> low) {
+        ni -> low = 0;
+        *value = __find_low(ni -> root);
+        ni -> now_pair = *value;
+        return 0;
+    }
+
+    struct kv_pair new_pair = ni -> now_pair;
+    new_pair.key++;
+    if(__search(ni -> root, &new_pair) == -1) {
+        printf("here 1\n");
+        ni -> up = 1;
+        return -1;
+    } else {
+        printf("here 2\n");
+        ni -> now_pair = new_pair;
+        *value = new_pair;
+        return 0;
+    }
+}
+
 struct node* node_merge(struct node* ltree, struct node* rtree) {
     size_t lsize = 0, rsize = 0;
     node_depth(ltree, 0, &lsize);
     node_depth(rtree, 0, &rsize);
     int max_lvl = max(lsize, rsize);
-    
-    struct kv_pair* rline = xmalloc(my_pow(ltree -> t * 2 + 1, max_lvl + 1), sizeof(struct kv_pair));
-    struct kv_pair* lline = xmalloc(my_pow(ltree -> t * 2 + 1, max_lvl + 1), sizeof(struct kv_pair));
+    size_t line_size = my_pow(ltree -> t * 2 + 1, max_lvl);
 
-    lsize = 0;
-    rsize = 0;
-
-    btree2table(ltree, lline, &lsize);
-    btree2table(rtree, rline, &rsize);
-    
-    struct node** low_line = xmalloc((lsize + rsize) / ltree -> t + 1, sizeof(struct node*));
-    size_t line_size = (lsize + rsize) / ltree -> t + 1;
+    struct node** low_line = xmalloc(line_size + 1, sizeof(struct node*));
     for(int i = 0; i < line_size; ++i) {
         low_line[i] = xmalloc(1, sizeof(struct node));
         node_init(low_line[i], ltree -> t);  
     }
     
-    // merge
-    size_t liter = 0, riter = 0;
     size_t glob_iter = 0, loc_iter = 0;
 
-    while(liter != lsize || riter != rsize) {
-        if((lline[liter].key <= rline[riter].key && 
-                    liter != lsize)|| riter == rsize) {
-            if(!lline[liter].is_delete) {
-                low_line[glob_iter] -> pairs[loc_iter++] = lline[liter++];
+    struct node_iter nil, nir;
+    node_iter_init(&nil, ltree);
+    node_iter_init(&nir, rtree);
+
+    struct kv_pair lpair, rpair;
+
+    int lres = node_iter_next(&nil, &lpair);
+    int rres = node_iter_next(&nir, &rpair);
+
+    while(lres == 0 || rres == 0) {
+        if((lpair.key <= rpair.key && 
+                    lres == 0)|| rres == -1) {
+            if(!lpair.is_delete) {
+                printf("lkey = %ld\n", lpair.key);
+                low_line[glob_iter] -> pairs[loc_iter++] = lpair;
                 low_line[glob_iter] -> size++;
+                
+                if(lpair.key == rpair.key) {
+                    rres = node_iter_next(&nir, &rpair);
+                }
+                
+                lres = node_iter_next(&nil, &lpair);
             } else {
-                liter++;
-            }
-            if(lline[liter - 1].key == rline[riter].key) {
-                riter++;
+                if(lpair.key == rpair.key) {
+                    rres = node_iter_next(&nir, &rpair);
+                }
+                lres = node_iter_next(&nil, &lpair);
             }
         } else {
-            if(!rline[riter].is_delete) {
-                low_line[glob_iter] -> pairs[loc_iter++] = rline[riter++];
+            if(!rpair.is_delete) {
+                printf("rkey = %ld\n", rpair.key);
+                low_line[glob_iter] -> pairs[loc_iter++] = rpair;
                 low_line[glob_iter] -> size++;
+                
+                printf("proble?\n");
+                rres = node_iter_next(&nir, &rpair);
             } else {
-                riter++;
+                rres = node_iter_next(&nir, &rpair);
             }
         }
         if(loc_iter == ltree -> t) {
+            printf("glob++\n");
             glob_iter++;
             loc_iter = 0;
         }
+        printf("step end\n");
     }
 
     for(size_t i = glob_iter; i < line_size; ++i) {
@@ -288,8 +339,8 @@ struct node* node_merge(struct node* ltree, struct node* rtree) {
     
     node_free(node_copy);
     free(node_copy);
-    free(rline);
-    free(lline);
+    //free(rline);
+    //free(lline);
     free(low_line);
     
     return root;
