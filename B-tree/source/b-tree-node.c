@@ -234,11 +234,9 @@ int node_iter_next(struct node_iter* ni, struct kv_pair* value) {
     struct kv_pair new_pair = ni -> now_pair;
     new_pair.key++;
     if(__search(ni -> root, &new_pair) == -1) {
-        printf("here 1\n");
         ni -> up = 1;
         return -1;
     } else {
-        printf("here 2\n");
         ni -> now_pair = new_pair;
         *value = new_pair;
         return 0;
@@ -273,7 +271,6 @@ struct node* node_merge(struct node* ltree, struct node* rtree) {
         if((lpair.key <= rpair.key && 
                     lres == 0)|| rres == -1) {
             if(!lpair.is_delete) {
-                printf("lkey = %ld\n", lpair.key);
                 low_line[glob_iter] -> pairs[loc_iter++] = lpair;
                 low_line[glob_iter] -> size++;
                 
@@ -290,22 +287,18 @@ struct node* node_merge(struct node* ltree, struct node* rtree) {
             }
         } else {
             if(!rpair.is_delete) {
-                printf("rkey = %ld\n", rpair.key);
                 low_line[glob_iter] -> pairs[loc_iter++] = rpair;
                 low_line[glob_iter] -> size++;
                 
-                printf("proble?\n");
                 rres = node_iter_next(&nir, &rpair);
             } else {
                 rres = node_iter_next(&nir, &rpair);
             }
         }
         if(loc_iter == ltree -> t) {
-            printf("glob++\n");
             glob_iter++;
             loc_iter = 0;
         }
-        printf("step end\n");
     }
 
     for(size_t i = glob_iter; i < line_size; ++i) {
