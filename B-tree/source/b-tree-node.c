@@ -192,55 +192,55 @@ int64_t node_find_max(struct node* n) {
     }
 }
 
+void node_stack_push(struct node_stack** ns, struct node* next_node) {
+	struct node_stack* this = xmalloc(1, sizeof(struct node_stack));
+	this -> next = *ns;
+	this -> this_node = next_node;
+	this -> pointer = 0;
+	*ns = this;
+}
+void node_stack_pop(struct node_stack** ns) {
+	if(*ns == NULL) {
+		return;
+	}
+	struct node_stack* prev = (*ns) -> next;
+	free(*ns);
+	*ns = prev;
+}
+
+
 void node_iter_init(struct node_iter* ni, struct node* base) {
-    ni -> root = base;
-    ni -> low = 1;
-    ni -> up = 0;
+	ni -> stack = NULL;
+	struct node* n = base;
+	node_stack_push(&(ni -> stack), n);
+	while(!n -> leaf) {
+		n = n -> nodes[0];
+		node_stack_push(&(ni -> stack), n);
+	}
 }
 
-struct kv_pair __find_low(struct node* tree) {
-    if(tree -> leaf) {
-        return tree -> pairs[0];
-    } else {
-        return __find_low(tree -> nodes[0]);
-    }
-}
-
-int __search(struct node* tree, struct kv_pair* value) {
-    size_t i = bin_search(tree -> pairs, tree -> size, value -> key);
-    if(tree -> leaf) {
-        if(tree -> size == i) {
-            return -1;
-        } else {
-            *value = tree -> pairs[i];
-            return 0;
-        }
-    } else {
-        return __search(tree -> nodes[i], value);
-    }
-}
 
 int node_iter_next(struct node_iter* ni, struct kv_pair* value) {
-    if(ni -> up) {
-        return -1;
-    }
-    if(ni -> low) {
-        ni -> low = 0;
-        *value = __find_low(ni -> root);
-        ni -> now_pair = *value;
-        return 0;
-    }
-
-    struct kv_pair new_pair = ni -> now_pair;
-    new_pair.key++;
-    if(__search(ni -> root, &new_pair) == -1) {
-        ni -> up = 1;
-        return -1;
-    } else {
-        ni -> now_pair = new_pair;
-        *value = new_pair;
-        return 0;
-    }
+	struct node_stack* stack = ni -> stack;
+	if(stack == NULL) {
+		return -1;
+	}
+	*value = stack -> this_node -> pairs[stack -> pointer];
+	while(stack -> pointer == stack -> this_node -> size - stack -> this_node -> leaf) {
+		node_stack_pop(&stack);
+		// next isn't exist
+		if(stack == NULL) {
+			ni -> stack = NULL;
+			return 0;
+		}
+	}
+	stack -> pointer++;
+	while(!stack -> this_node -> leaf) {
+		node_stack_push(&stack, stack -> this_node -> nodes[stack -> pointer]);
+	}
+	ni -> stack = stack;
+	return 0;
+	
 }
 
 struct node* node_merge(struct node* ltree, struct node* rtree) {
@@ -267,6 +267,8 @@ struct node* node_merge(struct node* ltree, struct node* rtree) {
     int lres = node_iter_next(&nil, &lpair);
     int rres = node_iter_next(&nir, &rpair);
 
+
+    // merge low line of btrees
     while(lres == 0 || rres == 0) {
         if((lpair.key <= rpair.key && 
                     lres == 0)|| rres == -1) {
@@ -313,7 +315,7 @@ struct node* node_merge(struct node* ltree, struct node* rtree) {
     node_copy -> leaf = 0;
     while(tsize != 1) {
         for(size_t i = 0; i < tsize; ++i) {
-            if(i % (2 * ltree -> t - 1) != 2*ltree -> t - 2 && i != tsize - 1) {
+            if(i % (2 * ltree -> t - 1) != 2 * ltree -> t - 2 && i != tsize - 1) {
                 node_copy -> pairs[node_copy -> size].key = node_find_max(low_line[i]);
                 node_copy -> nodes[node_copy -> size++] = low_line[i];
             } else {
@@ -332,8 +334,6 @@ struct node* node_merge(struct node* ltree, struct node* rtree) {
     
     node_free(node_copy);
     free(node_copy);
-    //free(rline);
-    //free(lline);
     free(low_line);
     
     return root;
