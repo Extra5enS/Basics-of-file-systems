@@ -7,8 +7,6 @@
 
 #define TEST_ARRAY_SIZE (1l << 15)//(1l << 22)
 
-void big_test_
-
 void print(struct kv_pair* kv) {
     printf("%ld -> %ld \n", kv -> key, kv -> value);
 }

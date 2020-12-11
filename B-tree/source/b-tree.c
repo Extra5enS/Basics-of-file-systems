@@ -9,10 +9,10 @@ void btree_init(btree* bt, size_t t) {
 int btree_search(btree* bt, int64_t key, int64_t* value) {
     struct ans a = node_search(bt -> root, key);
     if(a.n == NULL || a.n -> pairs[a.i].is_delete) {
-        return 0;
+        return -1;
     } else {
         *value = a.n -> pairs[a.i].value;
-        return 1;
+        return 0;
     }
 }
 
