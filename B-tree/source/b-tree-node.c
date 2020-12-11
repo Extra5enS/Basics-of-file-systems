@@ -239,6 +239,7 @@ int node_iter_next(struct node_iter* ni, struct kv_pair* value) {
 		node_stack_push(&stack, stack -> this_node -> nodes[stack -> pointer]);
 	}
 	ni -> stack = stack;
+	
 	return 0;
 	
 }

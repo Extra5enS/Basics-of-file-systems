@@ -67,3 +67,16 @@ btree btree_merge(btree* ltree, btree* rtree) {
     res_tree.root = node_merge(ltree -> root, rtree -> root);
     return res_tree;
 }
+
+void btree_iterator_init(btree_iterator* biter, btree* bt) {
+	biter -> bt = bt;
+	node_iter_init(&(biter -> iter), bt -> root);
+}
+
+int btree_iterator_next(btree_iterator* biter,struct kv_pair* value) {
+	int res;
+	do {
+		res = node_iter_next(&(biter -> iter), value);
+	} while(res == 0 && value -> is_delete);
+	return res;
+}

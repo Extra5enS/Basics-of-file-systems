@@ -18,6 +18,13 @@ btree btree_merge(btree* bt, btree* nextbt);
 void btree_foreach(btree* bt, void (*)(struct kv_pair* value));
 void btree_free(btree* bt);
 
+typedef struct {
+	struct node_iter iter;
+	btree* bt;
+} btree_iterator;
+
+void btree_iterator_init(btree_iterator* biter, btree* bt);
+int btree_iterator_next(btree_iterator* biter, struct kv_pair* value);
 
 #ifdef __cplusplus
 }
