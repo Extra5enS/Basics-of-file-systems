@@ -226,7 +226,7 @@ int node_iter_next(struct node_iter* ni, struct kv_pair* value) {
 		return -1;
 	}
 	*value = stack -> this_node -> pairs[stack -> pointer];
-	while(stack -> pointer == stack -> this_node -> size - stack -> this_node -> leaf) {
+	while(stack -> pointer + stack -> this_node -> leaf == stack -> this_node -> size){
 		node_stack_pop(&stack);
 		// next isn't exist
 		if(stack == NULL) {

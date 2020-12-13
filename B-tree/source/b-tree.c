@@ -74,6 +74,9 @@ void btree_iterator_init(btree_iterator* biter, btree* bt) {
 }
 
 int btree_iterator_next(btree_iterator* biter,struct kv_pair* value) {
+	if(biter -> bt -> root -> size == 0) {
+		return -1;
+	}
 	int res;
 	do {
 		res = node_iter_next(&(biter -> iter), value);

@@ -2,9 +2,9 @@
 #include <set>
 
 #include "../include/b-tree.h"
-#define MAX_TASK_ARRAY_SIZE (1 << 10) // for first time
+#define MAX_TASK_ARRAY_SIZE (1 << 14) // for first time
 
-#define MAX_KEY_ARRAY_SIZE (1 << 12)
+#define MAX_KEY_ARRAY_SIZE (1 << 14)
 #define	IN_TASK(n) ((n) % 3)
 #define IS_INSERT 0
 #define IS_ERASE 1
@@ -27,14 +27,20 @@ int comper_stores(std::set<int64_t> test_set, btree test_btree) {
 			res = -1;
 		}
 	}
-	while(btree_iterator_next(&biter, &kv) != -1) {
-//		fprintf(stderr, "ERROR: tree_size > set_size : kv = (%ld, %ld)\n", kv.key, kv.value);
+	if(btree_iterator_next(&biter, &kv) != -1) {	
+		fprintf(stderr, "ERROR: tree_size > set_size : kv = (%ld, %ld)\n", kv.key, kv.value);
 		res = -1;
 	}
+	while(btree_iterator_next(&biter, &kv) != -1);
 	return res;
 }
 
-
+void print_task(uint8_t* task, size_t size) {
+	for(size_t i = 0; i < size; ++i) {
+		printf("%d", task[i]);
+	}
+	putchar('\n');
+}
 
 int main() {
 	srand(time(NULL));
@@ -58,9 +64,10 @@ int main() {
 		for(size_t i = 0; i < task_array_step_size; ++i) {
 			int64_t key = key_array[rand() % MAX_KEY_ARRAY_SIZE];
 			switch(task_array[i]) {
-				case IS_INSERT:
-					test_set.insert(key);
-					btree_insert(&test_btree, key, i);
+				case IS_INSERT: {
+						test_set.insert(key);
+						btree_insert(&test_btree, key, i);
+					}
 					break;
 				case IS_ERASE:
 					{
@@ -84,12 +91,14 @@ int main() {
 					break;
 			}
 		}
+		print_task(task_array, task_array_step_size);
 		if(comper_stores(test_set, test_btree) == 0) {
-		//	printf("OK\n");
+			printf("OK\n");
 		} else {
-		//	printf("FAIL\n");
+			printf("FAIL\n");
 			break;
 		}	
+		printf("----------------------------------\n");
 		btree_free(&test_btree);
 	}
 
