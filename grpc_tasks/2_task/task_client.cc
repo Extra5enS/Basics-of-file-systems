@@ -21,21 +21,21 @@ using grpc::Channel;
 using grpc::ClientContext;
 /*
 using task::Triger;
-using task::TaskOne;
+using task::TaskTwo;
 */
-class TaskOneClient {
+class TaskTwoClient {
 public:
-	TaskOneClient(std::shared_ptr<Channel> channel)
-   	: stub_(TaskOne::NewStub(channel))	{}
+	TaskTwoClient(std::shared_ptr<Channel> channel)
+   	: stub_(TaskTwo::NewStub(channel))	{}
 	
-	std::vector<uint8_t> Triger(const std::string& user) {
+	std::vector<uint8_t> Gen(const std::string& user) {
 		Request request;
 		request.set_name(user);
 
 		Answer ans;
 		ClientContext context;
 
-		auto status = stub_ -> Triger(&context, request, &ans);
+		auto status = stub_ -> Gen(&context, request, &ans);
 		
 		std::vector<uint8_t> res;
 		for(auto byte : ans.word()) {
@@ -43,14 +43,15 @@ public:
 		}
 		
 		if(!status.ok()) {
-			std::cout << status.error_code() << ": " << status.error_message() << std::endl;
+			std::cout << status.error_code() << ": " 
+				<< status.error_message() << std::endl;
 			return {};
 		}
 		return res;
 	}	
 
 private:
-	std::unique_ptr<TaskOne::Stub> stub_;
+	std::unique_ptr<TaskTwo::Stub> stub_;
 
 };
 
@@ -61,11 +62,11 @@ void print_byte_word(std::vector<uint8_t> word) {
 }
 
 int main(int argc, char** argv) {
-	TaskOneClient task_one_client(
+	TaskTwoClient task_two_client(
 		grpc::CreateChannel("0.0.0.0:50051", grpc::InsecureChannelCredentials())
 	);
 	std::string user("qwert");
-	std::vector<uint8_t> word = task_one_client.Triger(user);
+	std::vector<uint8_t> word = task_two_client.Gen(user);
 	print_byte_word(word);
 	std::cout << std::endl;
 	return 0;
