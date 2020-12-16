@@ -1,4 +1,0 @@
-/home/psifi/psifi/workspace/projects/Basics-of-file-systems/grpc_tasks/1_task/cmake/build/CMakeFiles/rebuild_cache.dir
-/home/psifi/psifi/workspace/projects/Basics-of-file-systems/grpc_tasks/1_task/cmake/build/CMakeFiles/task_server.dir
-/home/psifi/psifi/workspace/projects/Basics-of-file-systems/grpc_tasks/1_task/cmake/build/CMakeFiles/edit_cache.dir
-/home/psifi/psifi/workspace/projects/Basics-of-file-systems/grpc_tasks/1_task/cmake/build/CMakeFiles/task_client.dir
