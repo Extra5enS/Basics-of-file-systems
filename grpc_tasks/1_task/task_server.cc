@@ -40,7 +40,7 @@ public:
 			word.push_back(BYTE(rand()));
 		}
 		if(TRY_TO_WAIT(rand()) == WAIT) {
-			usleep(1000);
+			usleep(1000000);
 		}
 		ans -> set_word(word);
 		return Status::OK;

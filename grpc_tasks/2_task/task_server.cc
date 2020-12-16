@@ -46,7 +46,7 @@ public:
 			word.push_back(BYTE(rand()));
 		}
 		if(TRY_TO_WAIT(rand()) == WAIT) {
-			usleep(1000);
+			usleep(1000000);
 		}
 		ans -> set_word(word);
 		return Status::OK;
@@ -109,7 +109,6 @@ public:
 						grpc::InsecureChannelCredentials())	
 			);
 		}
-		usleep(1000);
 	}
 
 	Status Gen(ServerContext* context,
@@ -137,7 +136,19 @@ void RunServer() {
 			"0.0.0.0:50052",		
 			"0.0.0.0:50053",		
 			"0.0.0.0:50054",		
-			"0.0.0.0:50055"
+			"0.0.0.0:50055",
+			"0.0.0.0:50056",
+			"0.0.0.0:50057",
+			"0.0.0.0:50058",
+			"0.0.0.0:50059",
+			"0.0.0.0:50062",		
+			"0.0.0.0:50063",		
+			"0.0.0.0:50064",		
+			"0.0.0.0:50065",
+			"0.0.0.0:50066",
+			"0.0.0.0:50067",
+			"0.0.0.0:50068",
+			"0.0.0.0:50069"
 			});
 	grpc::EnableDefaultHealthCheckService(true);
 	grpc::reflection::InitProtoReflectionServerBuilderPlugin();
